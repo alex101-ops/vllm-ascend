@@ -37,12 +37,8 @@
     - vllm_ascend/_310p
   tests:
     - tests/ut/_310p
-    - tests/e2e/pull_request/full/one_card/pooling_310p
-    - tests/e2e/pull_request/full/one_card/test_dense_model_310p.py
-    - tests/e2e/pull_request/full/one_card/test_vl_model_310p.py
-    - tests/e2e/pull_request/full/four_cards/test_dense_model_310p.py
-    - tests/e2e/pull_request/full/four_cards/test_moe_model_310p.py
-    - tests/e2e/pull_request/full/four_cards/test_vl_model_310p.py
+    - tests/e2e/pull_request/light/one_card/_310p
+    - tests/e2e/pull_request/light/four_card/_310p
 
 # Attention
 - name: attention_common
@@ -70,7 +66,7 @@
   source_file_dependencies:
     - vllm_ascend/attention/fa3_v1.py
   tests:
-    - tests/e2e/pull_request/full/one_card/test_attention_fa3.py
+    - tests/e2e/pull_request/light/one_card/test_attention_fa3.py
 
 - name: attention_mla
   optional: true
@@ -96,7 +92,7 @@
   source_file_dependencies:
     - vllm_ascend/attention/dsa_v1.py
   tests:
-    - tests/e2e/pull_request/full/four_cards/test_deepseek_v4.py
+    - tests/e2e/pull_request/light/four_card/test_deepseek_v4.py
 
 - name: attention_cp
   optional: true
@@ -104,27 +100,68 @@
   source_file_dependencies:
     - vllm_ascend/attention/context_parallel
   tests:
-    - tests/e2e/pull_request/full/four_cards/long_sequence/
+    - tests/e2e/pull_request/light/four_card/long_sequence/
 
-# compilation
-- name: compilation
+# Compilation
+- name: compilation - aclgraph
   optional: true
   source_file_dependencies:
-    - vllm_ascend/compilation
+    - vllm_ascend/compilation/__init__.py
+    - vllm_ascend/compilation/acl_graph.py
   tests:
-    - tests/ut/compilation  # Direct compilation UTs: acl_graph / compiler / basic pass logic
-    - tests/ut/test_platform.py  # Platform defaults and wrapper hookup depend on compilation
-    - tests/ut/attention  # Attention paths read/write acl_graph / graph params directly
-    - tests/ut/spec_decode  # Spec decode relies on update_full_graph_params / ACLGraphWrapper
-    - tests/e2e/pull_request/full/one_card/compile  # Main compilation E2E: norm_quant / qknorm_rope, etc.
-    - tests/e2e/pull_request/full/one_card/test_aclgraph_accuracy.py  # ACLGraph accuracy regression
-    - tests/e2e/pull_request/full/one_card/test_aclgraph_mem.py  # ACLGraph memory regression
-    - tests/e2e/pull_request/full/one_card/test_aclgraph_batch_invariant.py  # ACLGraph batch invariance
-    - tests/e2e/pull_request/full/one_card/spec_decode  # Single-card spec decode graph/capture path
-    - tests/e2e/pull_request/full/two_cards/test_sequence_parallelism_moe.py  # Multi-card SP/MoE compilation pass coverage
-    - tests/e2e/pull_request/full/two_cards/test_sp_pass.py  # Multi-card sequence parallelism pass validation
-    - tests/e2e/pull_request/full/two_cards/test_offline_inference_distributed.py  # Distributed offline inference uses compilation paths
+    - tests/ut/compilation
+    - tests/ut/test_platform.py
+    - tests/ut/attention
+    - tests/ut/spec_decode
+    - tests/e2e/pull_request/light/one_card/aclgraph
 
+- name: compilation - pass base
+  optional: true
+  source_file_dependencies:
+    - vllm_ascend/compilation/passes/__init__.py
+    - vllm_ascend/compilation/compiler_interface.py
+    - vllm_ascend/compilation/graph_fusion_pass_manager.py
+    - vllm_ascend/compilation/passes/utils
+    - vllm_ascend/compilation/passes/base_pattern.py
+  tests:
+    - tests/ut/compilation
+    - tests/e2e/pull_request/light/one_card/compile/
+
+- name: compilation - pass norm_quant_fusion_pass
+  optional: true
+  source_file_dependencies:
+    - vllm_ascend/compilation/passes/norm_quant_fusion_pass.py
+  tests:
+    - tests/ut/compilation
+    - tests/e2e/pull_request/light/one_card/compile/test_norm_quant_fusion.py
+    - tests/e2e/pull_request/light/one_card/compile/test_graphex_norm_quant_fusion.py
+
+- name: compilation - pass graphex_qknorm_rope_fusion_pass
+  optional: true
+  source_file_dependencies:
+    - vllm_ascend/compilation/passes/qknorm_rope_fusion_pass.py
+  tests:
+    - tests/ut/compilation
+    - tests/e2e/pull_request/light/one_card/compile/test_graphex_qknorm_rope_fusion.py
+
+- name: compilation - pass sp_pass_pass
+  optional: true
+  source_file_dependencies:
+    - vllm_ascend/compilation/passes/sequence_parallelism_moe.py
+    - vllm_ascend/compilation/passes/sequence_parallelism.py
+  tests:
+    - tests/e2e/pull_request/light/two_card/test_sp_pass.py
+
+- name: compilation - pass no_test
+  optional: true
+  source_file_dependencies:
+    - vllm_ascend/compilation/passes/allgather_chunk_noop_pass.py
+    - vllm_ascend/compilation/passes/allreduce_rmsnorm_fusion_pass.py
+    - vllm_ascend/compilation/passes/muls_add_pass.py
+    - vllm_ascend/compilation/passes/noop_elimination.py
+  tests: []
+
+# Core
 - name: core
   optional: true
   source_file_dependencies:
@@ -145,7 +182,7 @@
     - vllm_ascend/device_allocator
   tests:
     - tests/ut/device_allocator
-    - tests/e2e/pull_request/full/one_card/test_camem.py
+    - tests/e2e/pull_request/light/one_card/test_camem.py
 
 - name: distributed
   optional: true
@@ -158,7 +195,6 @@
     - tests/e2e/pull_request/full/four_cards/test_data_parallel_tp2.py
     - tests/e2e/pull_request/full/two_cards/test_full_graph_mode.py
     - tests/e2e/pull_request/full/two_cards/test_shared_expert_dp.py
-    - tests/e2e/pull_request/full/two_cards/test_sp_pass.py
     - tests/e2e/pull_request/full/two_cards/test_sequence_parallelism_moe.py
     - tests/e2e/pull_request/full/two_cards/test_disaggregated_encoder.py
 
@@ -168,6 +204,8 @@
     - vllm_ascend/eplb
   tests:
     - tests/ut/eplb
+    - tests/e2e/pull_request/light/two_card/test_qwen3_30b_a3b.py
+    - tests/e2e/pull_request/light/two_card/test_qwen3_moe_eplb.py
 
 - name: kv_offload
   optional: true
@@ -175,9 +213,9 @@
     - vllm_ascend/kv_offload
   tests:
     - tests/ut/kv_offload
-    - tests/e2e/pull_request/full/one_card/test_cpu_offloading.py
+    - tests/e2e/pull_request/light/one_card/test_cpu_offloading.py
     - tests/e2e/pull_request/full/two_cards/test_prefix_caching.py
-    - tests/e2e/pull_request/full/four_cards/long_sequence/test_prefix_caching_cp.py
+    - tests/e2e/pull_request/light/four_card/long_sequence/test_prefix_caching_cp.py
 
 - name: lora
   optional: true
@@ -185,14 +223,8 @@
     - vllm_ascend/lora
   tests:
     - tests/ut/lora
-    - tests/e2e/pull_request/full/one_card/test_ilama_lora.py
-    - tests/e2e/pull_request/full/one_card/test_llama32_lora.py
-    - tests/e2e/pull_request/full/one_card/test_qwen3_multi_loras.py
-    - tests/e2e/pull_request/full/one_card/test_qwen35_densemodel_lora.py
-    - tests/e2e/pull_request/full/one_card/pooling/test_qwen3_reranker_lora.py
-    - tests/e2e/pull_request/full/two_cards/test_ilama_lora_tp2.py
-    - tests/e2e/pull_request/full/two_cards/test_llama32_lora_tp2.py
-    - tests/e2e/pull_request/full/one_card/test_lora_with_spec_decode.py
+    - tests/e2e/pull_request/light/one_card/lora
+    - tests/e2e/pull_request/light/two_card/lora
 
 - name: model_loader
   optional: true
@@ -207,7 +239,7 @@
   source_file_dependencies:
     - vllm_ascend/models
   tests:
-    - tests/e2e/pull_request/full/four_cards/test_deepseek_v4.py
+    - tests/e2e/pull_request/light/four_card/test_deepseek_v4.py
 
 - name: ops_moe
   optional: true
@@ -252,7 +284,6 @@
     - tests/ut/test_utils.py
     - tests/e2e/pull_request/light/two_card/test_qwen3_30b_a3b.py
     - tests/e2e/pull_request/light/two_card/test_qwen3_vl_30b_a3b_instruct.py
-    - tests/e2e/pull_request/full/one_card/compile/test_norm_quant_fusion.py
     - tests/e2e/pull_request/full/one_card/test_multistream_overlap_shared_expert.py
 
 - name: patch
@@ -305,13 +336,10 @@
     - vllm_ascend/worker
   tests:
     - tests/ut/worker
-    - tests/e2e/pull_request/full/one_card/test_aclgraph_accuracy.py
-    - tests/e2e/pull_request/full/one_card/test_aclgraph_batch_invariant.py
-    - tests/e2e/pull_request/full/one_card/test_aclgraph_mem.py
-    - tests/e2e/pull_request/full/one_card/test_async_scheduling.py
-    - tests/e2e/pull_request/full/one_card/test_auto_fit_max_mode_len.py
+    - tests/e2e/pull_request/light/one_card/aclgraph/test_aclgraph_accuracy.py
+    - tests/e2e/pull_request/light/one_card/aclgraph/test_aclgraph_batch_invariant.py
+    - tests/e2e/pull_request/light/one_card/aclgraph/test_aclgraph_mem.py
     - tests/e2e/pull_request/full/one_card/test_completion_with_prompt_embeds.py
-    - tests/e2e/pull_request/full/one_card/test_eager_mode_acc.py
     - tests/e2e/pull_request/full/one_card/test_guided_decoding.py
     - tests/e2e/pull_request/full/one_card/test_multi_instance.py
     - tests/e2e/pull_request/full/one_card/pooling/test_classification.py
@@ -328,7 +356,7 @@
     - vllm_ascend/xlite
   tests:
     - tests/ut/xlite
-    - tests/e2e/pull_request/full/one_card/test_xlite.py
+    - tests/e2e/pull_request/light/one_card/test_xlite.py
 
 - name: batch_invariant
   optional: true
@@ -336,7 +364,7 @@
     - vllm_ascend/batch_invariant.py
   tests:
     - tests/ut/test_batch_invariant.py
-    - tests/e2e/pull_request/full/one_card/test_aclgraph_batch_invariant.py
+    - tests/e2e/pull_request/light/one_card/aclgraph/test_aclgraph_batch_invariant.py
     - tests/e2e/pull_request/full/one_card/test_batch_invariant.py
 
 - name: csrc
@@ -398,10 +426,10 @@
     - vllm_ascend/attention/kvcomp_attn
     - vllm_ascend/worker
   tests:
-    - tests/e2e/pull_request/full/four_cards/long_sequence/test_accuracy.py
-    - tests/e2e/pull_request/full/four_cards/long_sequence/test_basic.py
-    - tests/e2e/pull_request/full/four_cards/long_sequence/test_chunked_prefill_cp.py
-    - tests/e2e/pull_request/full/four_cards/long_sequence/test_mtp.py
+    - tests/e2e/pull_request/light/four_card/long_sequence/test_accuracy.py
+    - tests/e2e/pull_request/light/four_card/long_sequence/test_basic.py
+    - tests/e2e/pull_request/light/four_card/long_sequence/test_chunked_prefill_cp.py
+    - tests/e2e/pull_request/light/four_card/long_sequence/test_mtp.py
 
 - name: quantization-gqa-mla-c8
   optional: true
